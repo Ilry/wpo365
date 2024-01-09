@@ -113,10 +113,6 @@ if (!class_exists('\Wpo\Mail\Mail_Authorization_Helpers')) {
              * Check to see if all tokens have been retrieved successfully.
              */
 
-            if (empty($id_token)) {
-                $error_message = sprintf('%s -> ID token could not be extracted from request storage.', __METHOD__);
-                return new \WP_Error('IdTokenNotFoundException', $error_message);
-            }
 
             if (empty($access_tokens)) {
                 $error_message = sprintf('%s -> Access token could not be extracted from request storage.', __METHOD__);
@@ -128,6 +124,48 @@ if (!class_exists('\Wpo\Mail\Mail_Authorization_Helpers')) {
                 return new \WP_Error('RefreshTokenNotFoundException', $error_message);
             }
 
+            $mail_from = Options_Service::get_global_string_var('mail_from');
+
+            if (!Options_Service::get_global_boolean_var('mail_skip_all_checks')) {
+
+                if (empty($id_token)) {
+                    $error_message = sprintf('%s -> ID token could not be extracted from request storage.', __METHOD__);
+                    return new \WP_Error('IdTokenNotFoundException', $error_message);
+                }
+
+                /**
+                 * Ensure that the ID token is for the user account identified in the mail configuration.
+                 */
+
+                $upn = isset($id_token->upn)
+                    ? WordPress_Helpers::trim(strtolower($id_token->upn))
+                    : '';
+
+                $email = isset($id_token->email)
+                    ? WordPress_Helpers::trim(strtolower($id_token->email))
+                    : '';
+
+                $preferred_username = isset($id_token->preferred_username)
+                    ? WordPress_Helpers::trim(strtolower($id_token->preferred_username))
+                    : '';
+
+                if (
+                    strcasecmp($mail_from, $upn) !== 0
+                    && strcasecmp($mail_from, $email) !== 0
+                    && strcasecmp($mail_from, $preferred_username) !== 0
+                ) {
+                    $error_message = sprintf(
+                        '%s -> Information in the ID token does not match with the configured "From" User Mailbox / account information [Default from: %s, upn: %s, email: %s, preferred username: %s].',
+                        __METHOD__,
+                        $mail_from,
+                        $upn,
+                        $email,
+                        $preferred_username
+                    );
+                    return new \WP_Error('IdTokenNotFoundException', $error_message);
+                }
+            }
+
             /**
              * Switch the blog context if WPMU is detected and the user is trying to access
              * a subsite but landed at the main site because of Microsoft redirecting the
@@ -135,40 +173,6 @@ if (!class_exists('\Wpo\Mail\Mail_Authorization_Helpers')) {
              */
 
             Wpmu_Helpers::switch_blog($state);
-
-            /**
-             * Ensure that the ID token is for the user account identified in the mail configuration.
-             */
-
-            $mail_from = Options_Service::get_global_string_var('mail_from');
-
-            $upn = isset($id_token->upn)
-                ? WordPress_Helpers::trim(strtolower($id_token->upn))
-                : '';
-
-            $email = isset($id_token->email)
-                ? WordPress_Helpers::trim(strtolower($id_token->email))
-                : '';
-
-            $preferred_username = isset($id_token->preferred_username)
-                ? WordPress_Helpers::trim(strtolower($id_token->preferred_username))
-                : '';
-
-            if (
-                strcasecmp($mail_from, $upn) !== 0
-                && strcasecmp($mail_from, $email) !== 0
-                && strcasecmp($mail_from, $preferred_username) !== 0
-            ) {
-                $error_message = sprintf(
-                    '%s -> Information in the ID token does not match with the configured "From" User Mailbox / account information [Default from: %s, upn: %s, email: %s, preferred username: %s].',
-                    __METHOD__,
-                    $mail_from,
-                    $upn,
-                    $email,
-                    $preferred_username
-                );
-                return new \WP_Error('IdTokenNotFoundException', $error_message);
-            }
 
             /**
              * Create a mail authorization object and save it in the site's options table.

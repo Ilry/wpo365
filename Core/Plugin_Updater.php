@@ -404,14 +404,19 @@ class Plugin_Updater
                 break;
 
             default:
-                $raw_response = wp_remote_retrieve_body($response);
                 $message =
                     sprintf(
-                        __('An unknown error occurred whilst checking your license key for %s. Please contact WPO365 support and report this error [%s].'),
-                        $extension['store_item'],
-                        $raw_response
+                        __('An unknown error occurred whilst checking your license key for %s. Please check WP Admin > WPO365 > ... > Debug to view the raw request (and optionally send it to support@wpo365.com).'),
+                        $extension['store_item']
                     );
-
+                Log_Service::write_log('WARN', sprintf(
+                    '%s -> License key %s for %s is not valid for site with URL %s [raw request: %s]',
+                    __METHOD__,
+                    $license_key,
+                    $extension['store_item_id'],
+                    $url,
+                    htmlentities(serialize($response))
+                ));
                 break;
         }
 

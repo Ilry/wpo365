@@ -23,7 +23,7 @@
       "Wpo\\Mail\\": "Mail",
       "Wpo\\Pages\\": "Pages",
       "Wpo\\Services\\": "Services",
-      "phpseclib\\": "phpseclib"
+      "phpseclib3\\": "phpseclib3"
     }
   }
 }

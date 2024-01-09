@@ -71,10 +71,14 @@ if (!class_exists('\Wpo\Services\Id_Token_Service')) {
                 $scope = 'openid email profile';
             }
 
+            if (empty($response_mode = Options_Service::get_global_string_var('oidc_response_mode'))) {
+                $response_mode = 'form_post';
+            }
+
             $params = array(
                 'client_id'             => $application_id,
                 'redirect_uri'          => $redirect_uri,
-                'response_mode'         => 'form_post',
+                'response_mode'         => $response_mode,
                 'scope'                 => $scope,
                 'state'                 => $redirect_to,
                 'nonce'                 => Nonce_Service::create_nonce(),
@@ -326,6 +330,10 @@ if (!class_exists('\Wpo\Services\Id_Token_Service')) {
                 }
 
                 $request->set_item('refresh_token', $refresh_token);
+            }
+
+            if ($mode == 'mailAuthorize' && Options_Service::get_global_boolean_var('mail_skip_all_checks')) {
+                return;
             }
 
             if (property_exists($body, 'id_token')) {

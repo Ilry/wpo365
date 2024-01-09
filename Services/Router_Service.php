@@ -28,23 +28,23 @@ if (!class_exists('\Wpo\Services\Router_Service')) {
             $request = $request_service->get_request($GLOBALS['WPO_CONFIG']['request_id']);
 
             if (
-                ((!empty($_POST['id_token']) && !empty($_POST['state']))
-                    || (!empty($_POST['code']) && !empty($_POST['state']))
-                    || (!empty($_POST['error']) && !empty($_POST['state'])))
+                ((!empty($_REQUEST['id_token']) && !empty($_REQUEST['state']))
+                    || (!empty($_REQUEST['code']) && !empty($_REQUEST['state']))
+                    || (!empty($_REQUEST['error']) && !empty($_REQUEST['state'])))
                 && !Router_Service::skip_processing_oidc_payload()
             ) {
-                if (!empty($_POST['id_token'])) {
-                    $id_token = sanitize_text_field($_POST['id_token']);
+                if (!empty($_REQUEST['id_token'])) {
+                    $id_token = sanitize_text_field($_REQUEST['id_token']);
 
                     if (true === Id_Token_Service::check_audience($id_token)) {
                         $request->set_item('encoded_id_token', $id_token);
-                        unset($_POST['id_token']);
+                        unset($_REQUEST['id_token']);
                     } else {
                         return;
                     }
                 }
 
-                $state = self::process_state_url($_POST['state'], $request);
+                $state = self::process_state_url($_REQUEST['state'], $request);
                 $request->set_item('state', $state);
 
                 if (Options_Service::get_global_boolean_var('use_pkce') && class_exists('\Wpo\Services\Pkce_Service')) {
@@ -52,11 +52,11 @@ if (!class_exists('\Wpo\Services\Router_Service')) {
                     $request->set_item('state', $state);
                 }
 
-                unset($_POST['state']);
+                unset($_REQUEST['state']);
 
-                if (!empty($_POST['code'])) {
-                    $request->set_item('code', sanitize_text_field($_POST['code']));
-                    unset($_POST['code']);
+                if (!empty($_REQUEST['code'])) {
+                    $request->set_item('code', sanitize_text_field($_REQUEST['code']));
+                    unset($_REQUEST['code']);
                 }
             } elseif (false !== WordPress_Helpers::stripos($GLOBALS['WPO_CONFIG']['url_info']['request_uri'], 'mode=selfTest')) {
                 $request->set_item('mode', 'selfTest');
@@ -67,8 +67,8 @@ if (!class_exists('\Wpo\Services\Router_Service')) {
                 $request->set_item('relay_state', $relay_state); // -> Cannot be unset because there dependies relying on it
             }
 
-            if (isset($_POST['error'])) {
-                $error_string = sanitize_text_field($_POST['error']) . (isset($_POST['error_description']) ? \sanitize_text_field($_POST['error_description']) : '');
+            if (isset($_REQUEST['error'])) {
+                $error_string = sanitize_text_field($_REQUEST['error']) . (isset($_REQUEST['error_description']) ? \sanitize_text_field($_REQUEST['error_description']) : '');
                 Log_Service::write_log('ERROR', __METHOD__ . ' -> ' . $error_string);
             }
 
@@ -117,7 +117,7 @@ if (!class_exists('\Wpo\Services\Router_Service')) {
             }
 
             // process openid connect error
-            if (isset($_POST['error'])) {
+            if (isset($_REQUEST['error'])) {
                 add_action('init', '\Wpo\Services\Router_Service::route_openidconnect_error');
                 return true;
             }
@@ -405,8 +405,6 @@ if (!class_exists('\Wpo\Services\Router_Service')) {
                 parse_str($query, $result);
             }
 
-            parse_str($query, $result);
-
             if (isset($result['mode'])) {
                 $mode = $result['mode'];
                 $request->set_item('mode', $mode);
@@ -486,6 +484,7 @@ if (!class_exists('\Wpo\Services\Router_Service')) {
                 return false;
             }
 
+            $current_url = strtok($current_url, '?');
             $current_url = untrailingslashit($current_url);
             $current_url = str_replace('https://', '', $current_url);
             $current_url = str_replace('http://', '', $current_url);

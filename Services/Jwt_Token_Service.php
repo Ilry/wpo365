@@ -76,22 +76,18 @@ if (!class_exists('\Wpo\Services\Jwt_Token_Service')) {
                 );
             }
 
-            // create Crypt_RSA
-            $rsa = new \phpseclib\Crypt\RSA();
+            /** @var \phpseclib3\Crypt\RSA $rsa */
 
-            // load public key with modulus and exponent
-            $public = [
-                'n' => new \phpseclib\Math\BigInteger(WordPress_Helpers::base64_url_decode($key->n), 256),
-                'e' => new \phpseclib\Math\BigInteger(WordPress_Helpers::base64_url_decode($key->e), 256),
-            ];
+            $rsa = \phpseclib3\Crypt\PublicKeyLoader::load([
+                'n' => new \phpseclib3\Math\BigInteger(WordPress_Helpers::base64_url_decode($key->n), 256),
+                'e' => new \phpseclib3\Math\BigInteger(WordPress_Helpers::base64_url_decode($key->e), 256),
+            ]);
 
-            $rsa->loadKey($public);
+            $rsa = $rsa->withHash('sha256');
+            $rsa = $rsa->withPadding(\phpseclib3\Crypt\RSA::SIGNATURE_PKCS1);
 
-            // set hash algorithm
-            $rsa->setHash('sha256');
-            $rsa->setSignatureMode(\phpseclib\Crypt\RSA::SIGNATURE_PKCS1);
+            /** @var \phpseclib3\Crypt\Common\PublicKey $rsa */
 
-            // Verify
             try {
                 $verified = $rsa->verify($headers_enc . '.' . $claims_enc, $sig);
             } catch (\Exception $e) {

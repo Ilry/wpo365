@@ -263,7 +263,7 @@ if (!class_exists('\Wpo\Mail\Mailer')) {
                     $forms_from_domain = (explode('@', $forms_from))[1];
 
                     // Only allow to change the send-from account if the domain matches with the configured mail_from mail address' domain
-                    if (strcasecmp($mail_from_domain, $forms_from_domain) === 0) {
+                    if (strcasecmp($mail_from_domain, $forms_from_domain) === 0 || Options_Service::get_global_boolean_var('mail_skip_all_checks')) {
                         $array_of_email_addresses = self::validate_email_addresses($forms_from);
 
                         if (is_array($array_of_email_addresses) && sizeof($array_of_email_addresses) === 1) {
